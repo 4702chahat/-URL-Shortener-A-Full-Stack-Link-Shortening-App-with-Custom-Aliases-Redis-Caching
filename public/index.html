@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🌐 URL Shortener</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Animated background elements */
+      body::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.1) 1px,
+          transparent 1px
+        );
+        background-size: 50px 50px;
+        animation: float 20s linear infinite;
+        pointer-events: none;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translate(0, 0) rotate(0deg);
+        }
+        100% {
+          transform: translate(-50px, -50px) rotate(360deg);
+        }
+      }
+
+      .container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        padding: 3rem 2.5rem;
+        border-radius: 24px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15),
+          0 0 0 1px rgba(255, 255, 255, 0.1);
+        width: 100%;
+        max-width: 480px;
+        text-align: center;
+        position: relative;
+        transform: translateY(0);
+        transition: transform 0.3s ease;
+      }
+
+      .container:hover {
+        transform: translateY(-5px);
+      }
+
+      .header {
+        margin-bottom: 2.5rem;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.5px;
+      }
+
+      .subtitle {
+        color: #6b7280;
+        font-size: 1.1rem;
+        font-weight: 500;
+      }
+
+      .input-group {
+        position: relative;
+        margin-bottom: 2rem;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 18px 24px;
+        font-size: 1.1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 16px;
+        outline: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255, 255, 255, 0.8);
+        font-weight: 500;
+      }
+
+      input[type="text"]:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        background: rgba(255, 255, 255, 1);
+        transform: translateY(-2px);
+      }
+
+      input[type="text"]::placeholder {
+        color: #9ca3af;
+        font-weight: 400;
+      }
+
+      .btn-container {
+        margin-bottom: 2rem;
+      }
+
+      button {
+        padding: 18px 36px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        font-weight: 700;
+        font-size: 1.1rem;
+        border: none;
+        border-radius: 16px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        min-width: 160px;
+      }
+
+      button::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      button:hover::before {
+        left: 100%;
+      }
+
+      button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+      }
+
+      button:active {
+        transform: translateY(-1px);
+      }
+
+      .loading {
+        opacity: 0.7;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      .loading::after {
+        content: "";
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        margin: auto;
+        border: 2px solid transparent;
+        border-top-color: #ffffff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      @keyframes spin {
+        0% {
+          transform: translate(-50%, -50%) rotate(0deg);
+        }
+        100% {
+          transform: translate(-50%, -50%) rotate(360deg);
+        }
+      }
+
+      #result {
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        font-weight: 500;
+        border-radius: 16px;
+        padding: 20px;
+        transition: all 0.3s ease;
+      }
+
+      .success {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        animation: fadeInUp 0.5s ease;
+      }
+
+      .success a {
+        color: #ffffff;
+        font-weight: 700;
+        text-decoration: none;
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        margin-left: 12px;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .success a:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+      }
+
+      .error {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        animation: shake 0.5s ease;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-5px);
+        }
+        75% {
+          transform: translateX(5px);
+        }
+      }
+
+      .copy-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-left: 12px;
+        transition: all 0.3s ease;
+      }
+
+      .copy-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .features {
+        margin-top: 2rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        padding-top: 2rem;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .feature {
+        text-align: center;
+        padding: 1rem;
+        border-radius: 12px;
+        background: rgba(102, 126, 234, 0.05);
+        transition: all 0.3s ease;
+      }
+
+      .feature:hover {
+        background: rgba(102, 126, 234, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .feature-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .feature-text {
+        font-size: 0.9rem;
+        color: #6b7280;
+        font-weight: 500;
+      }
+
+      @media (max-width: 640px) {
+        .container {
+          padding: 2rem 1.5rem;
+          margin: 10px;
+        }
+
+        h1 {
+          font-size: 2rem;
+        }
+
+        input[type="text"],
+        button {
+          padding: 16px 20px;
+          font-size: 1rem;
+        }
+
+        .features {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🔗 URL Shortener</h1>
+        <p class="subtitle">Transform long URLs into short, shareable links</p>
+      </div>
+
+      <div class="input-group">
+        <input
+          type="text"
+          id="longUrl"
+          placeholder="Paste your long URL here..."
+          autocomplete="url"
+        />
+      </div>
+
+      <div class="btn-container">
+        <button id="shortenBtn">
+          <span class="btn-text">Shorten URL</span>
+        </button>
+      </div>
+
+      <div id="result"></div>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">⚡</div>
+          <div class="feature-text">Lightning Fast</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🔒</div>
+          <div class="feature-text">Secure</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📱</div>
+          <div class="feature-text">Mobile Ready</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const shortenBtn = document.getElementById("shortenBtn");
+      const longUrlInput = document.getElementById("longUrl");
+      const result = document.getElementById("result");
+      const btnText = document.querySelector(".btn-text");
+
+      // Enhanced URL validation
+      function isValidUrl(string) {
+        try {
+          const url = new URL(string);
+          return url.protocol === "http:" || url.protocol === "https:";
+        } catch (_) {
+          return false;
+        }
+      }
+
+      // Copy to clipboard function
+      async function copyToClipboard(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (err) {
+          // Fallback for older browsers
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          try {
+            document.execCommand("copy");
+            document.body.removeChild(textArea);
+            return true;
+          } catch (err) {
+            document.body.removeChild(textArea);
+            return false;
+          }
+        }
+      }
+
+      // Show loading state
+      function setLoading(loading) {
+        if (loading) {
+          shortenBtn.classList.add("loading");
+          btnText.style.opacity = "0";
+        } else {
+          shortenBtn.classList.remove("loading");
+          btnText.style.opacity = "1";
+        }
+      }
+
+      // Show result with animation
+      function showResult(content, type = "success") {
+        result.className = type;
+        result.innerHTML = content;
+      }
+
+      // Handle Enter key press
+      longUrlInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          shortenBtn.click();
+        }
+      });
+
+      // Main shortening function
+      shortenBtn.addEventListener("click", async () => {
+        const longUrl = longUrlInput.value.trim();
+
+        // Clear previous results
+        result.innerHTML = "";
+        result.className = "";
+
+        // Validation
+        if (!longUrl) {
+          showResult("⚠️ Please enter a URL to shorten", "error");
+          longUrlInput.focus();
+          return;
+        }
+
+        if (!isValidUrl(longUrl)) {
+          showResult(
+            "⚠️ Please enter a valid URL (must start with http:// or https://)",
+            "error"
+          );
+          longUrlInput.focus();
+          return;
+        }
+
+        setLoading(true);
+
+        try {
+          const res = await fetch("/shorten", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ longUrl }),
+          });
+
+          if (!res.ok) {
+            const errorMsg = await res.text();
+            throw new Error(errorMsg || `Server Error (${res.status})`);
+          }
+
+          const data = await res.json();
+
+          // Success result with copy functionality
+          showResult(
+            `
+            <div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px;">
+              <span>✅ Short URL created!</span>
+              <a href="${data.shortUrl}" target="_blank" rel="noopener">
+                ${data.shortUrl}
+                <span style="margin-left: 4px;">↗️</span>
+              </a>
+              <button class="copy-btn" onclick="handleCopy('${data.shortUrl}', this)">
+                📋 Copy
+              </button>
+            </div>
+          `,
+            "success"
+          );
+
+          // Clear input after success
+          longUrlInput.value = "";
+        } catch (err) {
+          console.error("Shortening error:", err);
+          showResult(`❌ ${err.message}`, "error");
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      // Global copy handler
+      window.handleCopy = async function (url, button) {
+        const originalText = button.innerHTML;
+        const success = await copyToClipboard(url);
+
+        button.innerHTML = success ? "✅ Copied!" : "❌ Failed";
+        button.style.background = success
+          ? "rgba(16, 185, 129, 0.3)"
+          : "rgba(239, 68, 68, 0.3)";
+
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.style.background = "rgba(255, 255, 255, 0.2)";
+        }, 2000);
+      };
+
+      // Auto-focus input on page load
+      window.addEventListener("load", () => {
+        longUrlInput.focus();
+      });
+    </script>
+  </body>
+</html>
